@@ -13,10 +13,15 @@ public class PlayerController : MonoBehaviour
     public Camera playerCamera;
     public float lookSpeed = 2.0f;
     public float lookXLimit = 45.0f;
+    public int lives = 10;
 
     CharacterController characterController;
     Vector3 moveDirection = Vector3.zero;
     float rotationX = 0;
+
+    public GameObject rootCanvas;
+
+    private bool selectionMode = false;
 
     [HideInInspector]
     public bool canMove = true;
@@ -44,17 +49,16 @@ public class PlayerController : MonoBehaviour
 
         moveDirection.y = movementDirectionY;
 
-        // Apply gravity. Gravity is multiplied by deltaTime twice (once here, and once below
-        // when the moveDirection is multiplied by deltaTime). This is because gravity should be applied
-        // as an acceleration (ms^-2)
-        if (!characterController.isGrounded)
-        {
-            moveDirection.y -= gravity * Time.deltaTime;
-        }
+        ApplyGravity();
 
-        // Move the controller
-        characterController.Move(moveDirection * Time.deltaTime);
+        MovePlayer();
 
+        CameraRotation();
+
+        SelectionMode();
+    }
+
+    void CameraRotation() {
         // Player and Camera rotation
         if (canMove)
         {
@@ -62,6 +66,45 @@ public class PlayerController : MonoBehaviour
             rotationX = Mathf.Clamp(rotationX, -lookXLimit, lookXLimit);
             playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
             transform.rotation *= Quaternion.Euler(0, Input.GetAxis("Mouse X") * lookSpeed, 0);
+        }
+    }
+
+    void MovePlayer() {
+        // Move the controller
+        characterController.Move(moveDirection * Time.deltaTime);
+    }
+
+    void ApplyGravity() {
+        // Apply gravity. Gravity is multiplied by deltaTime twice (once here, and once below
+        // when the moveDirection is multiplied by deltaTime). This is because gravity should be applied
+        // as an acceleration (ms^-2)
+        if (!characterController.isGrounded)
+        {
+            moveDirection.y -= gravity * Time.deltaTime;
+        }
+    }
+
+    void SelectionMode() 
+    {
+        if (Input.GetKeyDown(KeyCode.LeftControl)) 
+        {
+            rootCanvas.GetComponent<GameController>().ToggleUI();
+        }
+    }
+
+    private void OnTriggerEnter(Collider other) {
+        if (other.CompareTag("EnemyWeapon")) 
+        {
+            lives--;
+            if (lives == 0) 
+            {
+                Debug.Log("You died");
+            }
+        }
+
+        if (other.name == "Sphere") 
+        {
+            other.GetComponent<BallController>().Push(transform.forward);
         }
     }
 }
